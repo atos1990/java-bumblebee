@@ -76,38 +76,59 @@ public class BeanUtil {
      * @param propertyName The property to fetch from the provided object.
      * @return The property value.
      */
+    @SuppressWarnings("unchecked")
     public static Object getProperty(@NotNull Object object, @NotEmpty String propertyName) {
-        Method method = null;
-        String intermediate = Character.toUpperCase(propertyName.charAt(0)) + propertyName.substring(1);
+        if (object instanceof Collection) {
+            Collection collection = (Collection) object;
+            Collection intermediate = (object instanceof Set ? new HashSet(collection.size()) : new ArrayList(collection.size()));
 
-
-        for (String prefix : ACCESSOR_PREFIXES) {
-            try {
-                method = object.getClass().getDeclaredMethod(prefix + intermediate);
-            } catch (NoSuchMethodException e) {
-                // Ignore   
+            for (Object element : collection) {
+                intermediate.add(getProperty(element, propertyName));
             }
-        }
 
-        if (method == null) {
-            throw new PropertyAccessException("No accessor for property " + object.getClass().getSimpleName() + "." + propertyName + " could be found.");
-        }
+            return intermediate;
+        } else if (object.getClass().isArray()) {
+            int length = Array.getLength(object);
+            Collection intermediate = new ArrayList(length);
 
-        try {
-            method.setAccessible(true);
-        } catch (SecurityException e) {
-            // Ignore this exception. If the method is public, we'll manage to invoke it anyway. If it is not public
-            // we want an exception that describes the access violation properly.
-        }
+            for (int i = 0; i < length; i++) {
+                intermediate.add(getProperty(Array.get(object, i), propertyName));
+            }
 
-        try {
-            return method.invoke(object);
-        } catch (IllegalAccessException e) {
-            throw new PropertyAccessException("Failed to access property " + object.getClass().getSimpleName() + "." +
-                    propertyName + ". Make sure the accessor " + method.getName() + " is public.", e);
-        } catch (InvocationTargetException e) {
-            throw new PropertyAccessException("Accessor of property " + object.getClass().getSimpleName() + "." +
-                    propertyName + " caused an exception. Check the stack trace for details.", e);
+            return intermediate;
+        } else {
+            Method method = null;
+            String intermediate = Character.toUpperCase(propertyName.charAt(0)) + propertyName.substring(1);
+
+
+            for (String prefix : ACCESSOR_PREFIXES) {
+                try {
+                    method = object.getClass().getDeclaredMethod(prefix + intermediate);
+                } catch (NoSuchMethodException e) {
+                    // Ignore
+                }
+            }
+
+            if (method == null) {
+                throw new PropertyAccessException("No accessor for property " + object.getClass().getSimpleName() + "." + propertyName + " could be found.");
+            }
+
+            try {
+                method.setAccessible(true);
+            } catch (SecurityException e) {
+                // Ignore this exception. If the method is public, we'll manage to invoke it anyway. If it is not public
+                // we want an exception that describes the access violation properly.
+            }
+
+            try {
+                return method.invoke(object);
+            } catch (IllegalAccessException e) {
+                throw new PropertyAccessException("Failed to access property " + object.getClass().getSimpleName() + "." +
+                        propertyName + ". Make sure the accessor " + method.getName() + " is public.", e);
+            } catch (InvocationTargetException e) {
+                throw new PropertyAccessException("Accessor of property " + object.getClass().getSimpleName() + "." +
+                        propertyName + " caused an exception. Check the stack trace for details.", e);
+            }
         }
     }
 

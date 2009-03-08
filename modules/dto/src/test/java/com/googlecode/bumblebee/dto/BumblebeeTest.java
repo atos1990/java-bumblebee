@@ -15,6 +15,7 @@
 package com.googlecode.bumblebee.dto;
 
 import static com.googlecode.bumblebee.dto.Bumblebee.assemble;
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import org.junit.Test;
 
@@ -94,7 +95,21 @@ public class BumblebeeTest {
         assertEquals(3, dataObject.getIntValue());
     }
 
+    @Test
+    public void assembleShouldExtractNestedProperties() {
+        DataObjectWithNestedProperties dataObject = assemble(DataObjectWithNestedProperties.class).from(new ObjectWithOneToManyRelationship());
+        assertArrayEquals(new int[]{3, 4, 5}, dataObject.getIntegers());
+    }
+
     // Support classes
+
+    @DataObject
+    public interface DataObjectWithNestedProperties {
+
+        @Value("objects.objectWithPrimitives.intProperty")
+        public int[] getIntegers();
+
+    }
 
     @DataObject
     public interface DataObjectWithPropertyPath {

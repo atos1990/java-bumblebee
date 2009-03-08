@@ -32,6 +32,13 @@ public class DTOELParserTest {
         assertEquals(call("getProperty").of(BeanUtil.class).with($(0), constant("foo")), parse("foo"));
     }
 
+    @Test
+    public void testParsePropertyPath() throws Exception {
+        assertEquals(call("getProperty").of(BeanUtil.class).with(
+                call("getProperty").of(BeanUtil.class).with($(0), constant("foo")), constant("bar")
+        ), parse("foo.bar"));
+    }
+
     protected Expression parse(String text) throws Exception {
         DTOELParser parser = new DTOELParser(new ByteArrayInputStream(text.getBytes()), "UTF-8");
         return parser.Expression();

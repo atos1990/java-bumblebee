@@ -88,7 +88,21 @@ public class BumblebeeTest {
         }
     }
 
+    @Test
+    public void assembleShouldExtractPropertyPath() {
+        DataObjectWithPropertyPath dataObject = assemble(DataObjectWithPropertyPath.class).from(new ObjectWithOneToOneRelationship());
+        assertEquals(3, dataObject.getIntValue());
+    }
+
     // Support classes
+
+    @DataObject
+    public interface DataObjectWithPropertyPath {
+
+        @Value("objectWithPrimitives.intProperty")
+        public int getIntValue();
+
+    }
 
     @DataObject
     public interface DataObjectWithOneToManyRelationship {

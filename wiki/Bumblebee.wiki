@@ -1,4 +1,4 @@
-#summary Making Java EE at least a bit more fun with Bumblebee.
+#summary Making Java EE at least a bit more fun
 
 = Introduction =
 

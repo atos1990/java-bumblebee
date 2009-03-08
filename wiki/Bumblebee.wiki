@@ -61,6 +61,19 @@ public interface ContactInformation {
 }
 }}}
 
+You can also merge the information into the root DTO if you want to: 
+{{{
+@DataObject
+public interface UserData {
+   
+   @Value
+   public String getUsername();
+
+   @Value("contactInformation.homePhone")
+   public String getHomePhone();
+}
+}}}
+
 You then need to instruct Bumblebee to do the actual conversion in you business layer:
 
 {{{

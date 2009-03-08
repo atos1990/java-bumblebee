@@ -66,7 +66,7 @@ You then need to instruct Bumblebee to do the actual conversion in you business 
 {{{
 import static com.googlecode.bumblebee.dto.Bumblebee.assemble;
 
-@EJB // (or @Service or whatever)
+@Stateless // (or @Service or whatever)
 public class MyServiceBean implements MyService {
    public UserData getUser(String username) {
       User user = findUserByUsername(username);

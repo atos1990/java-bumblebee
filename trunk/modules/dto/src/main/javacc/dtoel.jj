@@ -346,8 +346,11 @@ TOKEN: {
 
 Expression Expression(): {
     Expression expression = null;
+    Token token = null;
 }{
-    expression = Operand() ("." <IDENTIFIER>)*
+    expression = Operand() ("." token = <IDENTIFIER> {
+        expression = call("getProperty").of(BeanUtil.class).with(expression, constant(token.image));
+    })*
 
     { return expression; }
 }

@@ -5,10 +5,14 @@ import com.googlecode.bumblebee.beans.BeanUtil;
 import static net.sf.jdpa.cg.Code.*;
 import net.sf.jdpa.cg.model.Expression;
 
+/**
+ * @author Andreas Nilsson
+ */
 public final class DTOELParser implements DTOELParserConstants {
 
     final public Expression Expression() throws ParseException {
         Expression expression = null;
+        Token token = null;
         expression = Operand();
         label_1:
         while (true) {
@@ -18,7 +22,8 @@ public final class DTOELParser implements DTOELParserConstants {
                 break label_1;
             }
             jj_consume_token(DOT);
-            jj_consume_token(IDENTIFIER);
+            token = jj_consume_token(IDENTIFIER);
+            expression = call("getProperty").of(BeanUtil.class).with(expression, constant(token.image));
         }
         {
             if (true) return expression;

@@ -88,3 +88,35 @@ public class MyServiceBean implements MyService {
    }
 }
 }}}
+
+= Multiple nested values =
+
+It's possible to extract nested data from a source object even though no distinct instance exists. Consider a user with multiple phone numbers:
+
+{{{
+public class User {
+
+   public List<ContactInfo> getContactInfo() { ... }
+
+}
+
+public class ContactInfo {
+
+   public String getPhoneNumber();
+
+}
+}}}
+
+Given the entities above, we can define a DTO that extracts the phone numbers only, rather than dealing with cascaded DTOs:
+
+{{{
+@DataObject
+public interface UserData {
+
+   @Value("contactInfo.phoneNumber")
+   public List<String> getPhoneNumbers();
+
+}
+}}}
+
+The resulting list will be the union of all reachable leaves.

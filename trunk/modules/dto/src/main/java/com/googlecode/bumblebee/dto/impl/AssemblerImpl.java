@@ -159,6 +159,8 @@ public class AssemblerImpl implements Assembler {
                         );
             } else {
                 Class<?> componentType = propertyType;
+                String propertyTypeImage = getTypeImage(propertyType);
+                String componentTypeImage = null;
 
                 if (Collection.class.isAssignableFrom(propertyType)) {
                     componentType = BeanUtil.getCollectionComponentType(value.getAccessor().getGenericReturnType().toString());
@@ -166,10 +168,12 @@ public class AssemblerImpl implements Assembler {
                     componentType = propertyType.getComponentType();
                 }
 
+                componentTypeImage = getTypeImage(componentType);
+
                 statement = set(value.getProperty()).of($this()).to(
                         cast(
-                                call("copy").of(BeanUtil.class).with(expression, $("class").of(propertyType), $("class").of(componentType), $(1))
-                        ).to(value.getPropertyType().getName())
+                                call("copy").of(BeanUtil.class).with(expression, $("class").of(propertyTypeImage), $("class").of(componentTypeImage), $(1))
+                        ).to(getTypeImage(value.getPropertyType()))
                 );
             }
 
@@ -184,6 +188,14 @@ public class AssemblerImpl implements Assembler {
         } catch (CannotCompileException e) {
             throw new DataObjectGenerationException("Compilation of data object implementation class failed. " +
                     "Check the stack trace for more information.", e);
+        }
+    }
+
+    protected String getTypeImage(Class<?> type) {
+        if (type.isArray()) {
+            return getTypeImage(type.getComponentType()) + "[]";
+        } else {
+            return type.getName();
         }
     }
 

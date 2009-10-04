@@ -220,17 +220,17 @@ public class DataObjectImplementationBuilderTestBase {
 
         @Test(expected = IllegalArgumentException.class)
         public void nullInitializersShouldNotBeAccepted() {
-            dataObjectImplementationBuilder.addConstructor(implementationClass, null);
+            dataObjectImplementationBuilder.addConversionConstructor(implementationClass, null);
         }
 
         @Test(expected = IllegalArgumentException.class)
         public void nullImplementationClassShouldNotBeAccepted() {
-            dataObjectImplementationBuilder.addConstructor(null, Collections.<CtMethod>emptyList());
+            dataObjectImplementationBuilder.addConversionConstructor(null, Collections.<CtMethod>emptyList());
         }
 
         @Test
         public void constructorWithSourceAndAssemblerShouldBeDeclared() throws Exception {
-            dataObjectImplementationBuilder.addConstructor(implementationClass, Collections.<CtMethod>emptyList());
+            dataObjectImplementationBuilder.addConversionConstructor(implementationClass, Collections.<CtMethod>emptyList());
 
             CtConstructor[] constructors = implementationClass.getConstructors();
             assertEquals(1, constructors.length);
@@ -254,7 +254,7 @@ public class DataObjectImplementationBuilderTestBase {
             ctMethod = dataObjectImplementationBuilder.addInitializer(implementationClass, "foo", set("foo").of($this()).to(constant("foobar")));
 
             // Create a constructor for the implementation class.
-            dataObjectImplementationBuilder.addConstructor(implementationClass, Arrays.asList(ctMethod));
+            dataObjectImplementationBuilder.addConversionConstructor(implementationClass, Arrays.asList(ctMethod));
 
             Class clazz = implementationClass.toClass();
             Constructor constructor = clazz.getConstructor(Object.class, Assembler.class);

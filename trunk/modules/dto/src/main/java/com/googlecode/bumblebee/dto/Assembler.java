@@ -26,4 +26,7 @@ public interface Assembler {
     @NotNull
     public <T> T assemble(Object source, Class<T> dataObjectType);
 
+    @NotNull
+    public <T> T assemble(Class<T> dataObjectType, PropertyValue ... properties);
+
 }

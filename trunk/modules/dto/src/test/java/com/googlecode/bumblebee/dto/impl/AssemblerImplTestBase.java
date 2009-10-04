@@ -18,6 +18,7 @@ import com.googlecode.bumblebee.beans.BeanUtil;
 import com.googlecode.bumblebee.dto.AssemblyException;
 import com.googlecode.bumblebee.dto.DataObject;
 import com.googlecode.bumblebee.dto.Value;
+import com.googlecode.bumblebee.dto.PropertyValue;
 import javassist.ClassPool;
 import javassist.CtClass;
 import javassist.CtMethod;
@@ -93,7 +94,7 @@ public class AssemblerImplTestBase {
                     )));
 
             // Check that a constructor is added
-            verify(implementationBuilder).addConstructor((CtClass) anyObject(), (Collection<CtMethod>) anyObject());
+            verify(implementationBuilder).addConversionConstructor((CtClass) anyObject(), (Collection<CtMethod>) anyObject());
         }
 
         @Test
@@ -191,6 +192,38 @@ public class AssemblerImplTestBase {
             public List<String> getStrings() {
                 return this.strings;
             }
+
+        }
+
+    }
+
+    public static class AssembleFromPropertiesTest extends AssemblerImplTestBase {
+
+        @Test(expected = IllegalArgumentException.class)
+        public void assembleShouldNotAcceptNullDataObjectType() {
+            assembler.assemble(null);
+        }
+
+        @Test                                   
+        public void assembleShouldReturnPlainInstanceIfNoPropertiesAreProvided() {
+            DummyDataObject dataObject = assembler.assemble(DummyDataObject.class);
+            assertNotNull(dataObject);
+            assertNull(dataObject.getString());
+        }
+
+        @Test
+        public void providedPropertiesShouldBeTransferedToObject() {
+            DummyDataObject dataObject = assembler.assemble(DummyDataObject.class, new PropertyValue("string", "FooBar"));
+            assertEquals("FooBar", dataObject.getString());
+        }
+
+        // Local support classes
+
+        @DataObject
+        public static interface DummyDataObject {
+
+            @Value
+            public String getString();
 
         }
 

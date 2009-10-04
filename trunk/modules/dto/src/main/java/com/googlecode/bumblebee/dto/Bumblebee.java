@@ -16,6 +16,8 @@ package com.googlecode.bumblebee.dto;
 
 import com.googlecode.bumblebee.dto.impl.AssemblerImpl;
 
+import java.util.Map;
+
 /**
  * @author Andreas Nilsson
  */
@@ -30,6 +32,14 @@ public class Bumblebee {
                 return (T) DEFAULT_ASSEMBLER.assemble(source, dataObjectClass);
             }
         };
+    }
+
+    public static <T> T create(final Class<T> dataObjectClass, PropertyValue ... values) {
+        return DEFAULT_ASSEMBLER.assemble(dataObjectClass, values);
+    }
+
+    public static PropertyValue with(String propertyName, Object propertyValue) {
+        return new PropertyValue(propertyName, propertyValue);
     }
 
     public static interface AssembleBuilder<T> {

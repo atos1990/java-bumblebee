@@ -14,9 +14,8 @@
 
 package com.googlecode.bumblebee.dto;
 
-import static com.googlecode.bumblebee.dto.Bumblebee.assemble;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
+import static com.googlecode.bumblebee.dto.Bumblebee.*;
+import static org.junit.Assert.*;
 import org.junit.Test;
 
 /**
@@ -101,7 +100,41 @@ public class BumblebeeTest {
         assertArrayEquals(new int[]{3, 4, 5}, dataObject.getIntegers());
     }
 
+    @Test
+    public void createDataObjectShouldReturnUnconfiguredInstanceOfNotPropertiesAreDefined() {
+        DummyDataObject dataObject = create(DummyDataObject.class);
+        assertNotNull(dataObject);
+        assertNull(dataObject.getString());
+    }
+
+    @Test
+    public void createDataObjectShouldSetDefinedProperties() {
+        DataObjectWithNestedProperties dataObject = create(DataObjectWithNestedProperties.class,
+            with("integers", new int[] { 1, 2, 3, 4 })
+        );
+
+        assertArrayEquals(new int[] { 1, 2, 3, 4 }, dataObject.getIntegers());
+    }
+
+    @Test
+    public void objectGeneratedFromBuilderShouldImplementEquals() {
+        DataObjectWithNestedProperties obj1 = create(DataObjectWithNestedProperties.class, with("integers", new int[] { 1 }));
+        DataObjectWithNestedProperties obj2 = create(DataObjectWithNestedProperties.class, with("integers", new int[] { 1 }));
+        DataObjectWithNestedProperties obj3 = create(DataObjectWithNestedProperties.class, with("integers", new int[] { 2 }));
+
+        assertEquals(obj1, obj2);
+        assertFalse(obj1.equals(obj3));
+    }
+
     // Support classes
+
+    @DataObject
+    public interface DummyDataObject {
+
+        @Value
+        public String getString();
+
+    }
 
     @DataObject
     public interface DataObjectWithNestedProperties {

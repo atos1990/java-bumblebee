@@ -51,18 +51,27 @@ public class AssemblerImpl implements Assembler {
 
     @SuppressWarnings("unchecked")
     public <T> T assemble(@NotNull Object source, @NotNull Class<T> dataObjectType) {
+        return createDataObjectInstance(dataObjectType, new Class[] { Object.class, Assembler.class }, new Object[] { source, this });
+    }
+
+    public <T> T assemble(@NotNull Class<T> dataObjectType, PropertyValue ... properties) {
+        return createDataObjectInstance(dataObjectType, new Class[] { PropertyValue[].class, Assembler.class }, new Object[] { properties, this });
+    }
+
+    @SuppressWarnings("unchecked")
+    protected <T> T createDataObjectInstance(Class<T> dataObjectType, Class[] signature, Object[] args) {
         Class<?> dataObjectImplementationClass = getDataObjectImplementation(dataObjectType);
         Constructor constructor = null;
 
         try {
-            constructor = dataObjectImplementationClass.getDeclaredConstructor(Object.class, Assembler.class);
+            constructor = dataObjectImplementationClass.getDeclaredConstructor(signature);
         } catch (NoSuchMethodException e) {
             throw new AssemblyException("The generated data object implementation class '" + dataObjectImplementationClass.getName() +
                     "' is not valid. No constructor (java.lang.Object, org.tools4j.dto.Assembler) was defined", e);
         }
 
         try {
-            return (T) constructor.newInstance(source, this);
+            return (T) constructor.newInstance(args);
         } catch (InstantiationException e) {
             throw new DataObjectGenerationException("The data object implementation class could not be instantiated. " +
                     "Check the stack trace for more information.", e);
@@ -146,17 +155,17 @@ public class AssemblerImpl implements Assembler {
                 // we can't unbox a null value. So simply catch the exception and rethrow a nicer exception.
 
                 statement =
-                        $try(
-                                set(value.getProperty()).of($this()).to(
-                                        unbox(cast(
-                                                call("getUnwrappableValue").of(BeanUtil.class).with(expression, constant(wrapperType))
-                                        ).to(wrapperType), wrapperType)
-                                )
-                        ).$catch(IllegalArgumentException.class.getName(), "e",
-                                $throw($new(AssemblyException.class, cat(constant("Failed to assemble property '" +
-                                        value.getProperty() + "': expression evaluates to null: '" + value.getExpression() +
-                                        "' on "), call("getClass").of($(0)))))
-                        );
+                    $try(
+                        set(value.getProperty()).of($this()).to(
+                            unbox(cast(
+                                call("getUnwrappableValue").of(BeanUtil.class).with(expression, constant(wrapperType))
+                            ).to(wrapperType), wrapperType)
+                        )
+                    ).$catch(IllegalArgumentException.class.getName(), "e",
+                        $throw($new(AssemblyException.class, cat(constant("Failed to assemble property '" +
+                                    value.getProperty() + "': expression evaluates to null: '" + value.getExpression() +
+                                    "' on "), call("getClass").of($(0)))))
+                    );
             } else {
                 Class<?> componentType = propertyType;
                 String propertyTypeImage = getTypeImage(propertyType);
@@ -171,9 +180,9 @@ public class AssemblerImpl implements Assembler {
                 componentTypeImage = getTypeImage(componentType);
 
                 statement = set(value.getProperty()).of($this()).to(
-                        cast(
-                                call("copy").of(BeanUtil.class).with(expression, $("class").of(propertyTypeImage), $("class").of(componentTypeImage), $(1))
-                        ).to(getTypeImage(value.getPropertyType()))
+                    cast(
+                        call("copy").of(BeanUtil.class).with(expression, $("class").of(propertyTypeImage), $("class").of(componentTypeImage), $(1))
+                    ).to(getTypeImage(value.getPropertyType()))
                 );
             }
 
@@ -181,7 +190,10 @@ public class AssemblerImpl implements Assembler {
             initializers.add(implementationBuilder.addInitializer(ctClass, value.getProperty(), statement));
         }
 
-        implementationBuilder.addConstructor(ctClass, initializers);
+        implementationBuilder.addBuilderConstructor(ctClass);
+        implementationBuilder.addConversionConstructor(ctClass, initializers);
+
+        implementationBuilder.addEqualsMethod(ctClass, valueDescriptors);
 
         try {
             return ctClass.toClass();

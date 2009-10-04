@@ -16,6 +16,8 @@ package com.googlecode.bumblebee.dto.impl;
 
 import com.googlecode.bumblebee.dto.Assembler;
 import com.googlecode.bumblebee.dto.DataObjectGenerationException;
+import com.googlecode.bumblebee.dto.PropertyValue;
+import com.googlecode.bumblebee.dto.ValueDescriptor;
 import javassist.*;
 import net.sf.jdpa.NotEmpty;
 import net.sf.jdpa.NotNull;
@@ -27,6 +29,7 @@ import net.sf.jdpa.javassist.JavassistEmitter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Arrays;
 
 /**
  * @author Andreas Nilsson
@@ -176,7 +179,55 @@ public class DataObjectImplementationBuilder {
         return method;
     }
 
-    public CtConstructor addConstructor(@NotNull CtClass implementationClass, @NotNull Collection<CtMethod> initializers) {
+    public CtConstructor addBuilderConstructor(@NotNull CtClass implementationClass) {
+        CtConstructor constructor = null;
+        CtClass ctPropertyValueArray = null;
+        CtClass ctAssembler = null;
+        StringBuilder statementBuffer = new StringBuilder();
+
+        try {
+            ctPropertyValueArray = classPool.get(PropertyValue[].class.getName());
+        } catch (NotFoundException e) {
+            throw new DataObjectGenerationException("Failed to locate class file for PropertyValue[]");
+        }
+
+        try {
+            ctAssembler = classPool.get(Assembler.class.getName());
+        } catch (NotFoundException e) {
+            throw new DataObjectGenerationException("Failed to locate class file for Assembler");
+        }
+
+        try {
+            constructor = CtNewConstructor.make(new CtClass[] { ctPropertyValueArray, ctAssembler }, new CtClass[0], implementationClass);
+        } catch (CannotCompileException e) {
+            throw new DataObjectGenerationException("Failed to generate constructor (PropertyValue[], Assembler)");
+        }
+
+        statementBuffer.append("for (int i = 0; i < $1.length; i++) {");
+            statementBuffer.append("com.googlecode.bumblebee.dto.PropertyValue propertyValue = $1[i];");
+            statementBuffer.append("try {");
+                statementBuffer.append("getClass().getDeclaredField(propertyValue.getPropertyName()).set(this, $1[i].getPropertyValue());");
+            statementBuffer.append("} catch (Exception e) {");
+                statementBuffer.append("throw new com.googlecode.bumblebee.dto.DataObjectGenerationException(\"Failed to set property \" + propertyValue.getPropertyName(), e);");
+            statementBuffer.append("}");
+        statementBuffer.append("}");
+
+        try {
+            constructor.setBody(statementBuffer.toString());
+        } catch (CannotCompileException e) {
+            throw new DataObjectGenerationException("Failed to compile constructor: " + statementBuffer, e);
+        }
+
+        try {
+            implementationClass.addConstructor(constructor);
+        } catch (CannotCompileException e) {
+            throw new DataObjectGenerationException("Failed to compile constructor: " + statementBuffer, e);
+        }
+
+        return constructor;
+    }
+
+    public CtConstructor addConversionConstructor(@NotNull CtClass implementationClass, @NotNull Collection<CtMethod> initializers) {
         CtConstructor constructor = null;
         CtClass ctObject = null;
         CtClass ctAssembler = null;
@@ -230,4 +281,56 @@ public class DataObjectImplementationBuilder {
 
         return constructor;
     }
+
+    public CtMethod addEqualsMethod(CtClass implementationClass, List<ValueDescriptor> values) {
+        CtClass ctObject = null;
+        StringBuilder body = new StringBuilder();
+        CtMethod ctEquals = null;
+
+        try {
+            ctObject = classPool.get(Object.class.getName());
+        } catch (NotFoundException e) {
+            throw new DataObjectGenerationException("Failed to locate class file for java.lang.Object)");
+        }
+
+        body.append("{");
+        body.append("if ($1 == null || !getClass().equals($1.getClass())) return false;");
+        body.append(implementationClass.getName()).append(" that = (").append(implementationClass.getName()).append(") $1;");
+
+        for (ValueDescriptor value : values) {
+            if (value.getPropertyType().isPrimitive()) {
+                body.append("if (this.").append(value.getProperty()).append("!=that.").append(value.getProperty()).append(") return false;");
+            } else if (value.getPropertyType().isArray()) {
+                body.append("if (this.").append(value.getProperty()).append("==null && that.")
+                        .append(value.getProperty()).append("!=null || this.")
+                        .append(value.getProperty()).append(" != null && !java.util.Arrays.equals(this.")
+                        .append(value.getProperty()).append(", that.")
+                        .append(value.getProperty()).append(")) return false;");
+            } else {
+                body.append("if (this.").append(value.getProperty()).append("==null && that.")
+                        .append(value.getProperty()).append("!=null || this.")
+                        .append(value.getProperty()).append(" != null && !this.")
+                        .append(value.getProperty()).append(".equals(that.")
+                        .append(value.getProperty()).append(")) return false;");
+            }                                  
+        }
+
+        body.append("return true;");
+        body.append("}");
+
+        try {
+            ctEquals = CtNewMethod.make(CtClass.booleanType, "equals", new CtClass[] { ctObject }, new CtClass[0], body.toString(), implementationClass);
+        } catch (CannotCompileException e) {
+            throw new DataObjectGenerationException("Failed to create equals method: " + body.toString(), e);
+        }
+
+        try {
+            implementationClass.addMethod(ctEquals);
+        } catch (CannotCompileException e) {
+            throw new DataObjectGenerationException("Failed to add equals method to implementation class: " + body.toString(), e);
+        }
+
+        return ctEquals;
+    }
+
 }

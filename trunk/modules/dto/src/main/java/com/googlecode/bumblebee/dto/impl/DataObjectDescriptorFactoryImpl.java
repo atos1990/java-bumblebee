@@ -20,6 +20,7 @@ import com.googlecode.bumblebee.dto.*;
 import net.sf.jdpa.NotNull;
 
 import java.lang.reflect.Method;
+import java.lang.annotation.Annotation;
 
 /**
  * @author Andreas Nilsson
@@ -40,8 +41,8 @@ public class DataObjectDescriptorFactoryImpl implements DataObjectDescriptorFact
             } else {
                 descriptor = new DataObjectDescriptorImpl<T>(dataObjectClass);
 
+                scanTypeAnnotations(descriptor, dataObjectClass);
                 scanInterface(descriptor, dataObjectClass);
-
             }
         }
 
@@ -79,6 +80,12 @@ public class DataObjectDescriptorFactoryImpl implements DataObjectDescriptorFact
 
         for (Class<?> superInterface : dataObjectClass.getInterfaces()) {
             scanInterface(descriptor, superInterface);
+        }
+    }
+
+    protected void scanTypeAnnotations(DataObjectDescriptorImpl descriptor, Class<?> dataObjectClass) {
+        for (Class<? extends Annotation> annotationType : dataObjectClass.getAnnotation(DataObject.class).inheritedAnnotations()) {
+            descriptor.addInheritedAnnotation(annotationType);
         }
     }
 

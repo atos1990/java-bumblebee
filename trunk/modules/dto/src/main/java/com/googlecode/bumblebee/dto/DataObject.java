@@ -14,10 +14,7 @@
 
 package com.googlecode.bumblebee.dto;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import java.lang.annotation.*;
 
 /**
  * Denotes a data transfer object (DTO, TO, VO). This annotation must be present on objects
@@ -28,4 +25,13 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
 public @interface DataObject {
+
+    /**
+     * Defines whether or not the implementation class should inherit the annotations defined
+     * in the data object interface. This might be necessary of you e.g. intend to use your
+     * objects in conjunction with JAXB.
+     * @return Whether or not annotations should be inherited by the implementation class.
+     */
+    Class<? extends Annotation>[] inheritedAnnotations() default { Annotation.class };
+
 }

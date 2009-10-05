@@ -19,6 +19,9 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.lang.reflect.Method;
+import java.lang.annotation.Annotation;
+
+import com.googlecode.bumblebee.dto.DataObjectDescriptor;
 
 /**
  * @author Andreas Nilsson
@@ -159,6 +162,26 @@ public class DataObjectDescriptorImplTest {
         descriptor2.addValueDescriptor(new ValueDescriptorImpl(String.class, valueAccessor, "foo", "foo"));
 
         assertEquals(descriptor1.hashCode(), descriptor2.hashCode());
+    }
+
+    @Test
+    public void inheritedAnnotationsShouldInitiallyBeEmpty() {
+        assertEquals(0, new DataObjectDescriptorImpl<String>(String.class).getInheritedAnnotations().length);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void addInheritedAnnotationShouldNotAcceptNullValue() {
+        new DataObjectDescriptorImpl<String>(String.class).addInheritedAnnotation(null);
+    }
+
+    @Test
+    public void addedInheritedAnnotationShouldBeEnumerable() {
+        DataObjectDescriptorImpl<String> descriptor = new DataObjectDescriptorImpl<String>(String.class);
+        Class<? extends Annotation> annotationType = Test.class;
+
+        descriptor.addInheritedAnnotation(annotationType);
+
+        assertArrayEquals(new Class[] { Test.class }, descriptor.getInheritedAnnotations());
     }
 
 }

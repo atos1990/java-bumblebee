@@ -29,4 +29,7 @@ public interface Assembler {
     @NotNull
     public <T> T assemble(Class<T> dataObjectType, PropertyValue ... properties);
 
+    @NotNull
+    public<T> Class<? extends T> getDataObjectImplementation(Class<T> descriptorType);
+
 }

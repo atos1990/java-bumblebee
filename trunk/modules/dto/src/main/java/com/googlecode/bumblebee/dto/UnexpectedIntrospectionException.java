@@ -14,29 +14,23 @@
 
 package com.googlecode.bumblebee.dto;
 
-import net.sf.jdpa.NotNull;
-
-import java.util.List;
-import java.lang.annotation.Annotation;
-
 /**
- * A <code>DataObjectDescriptor</code> constitutes a descriptor of a data object, i.e. java interface
- * with the <code>DataObject</code> annotation.
- *
  * @author Andreas Nilsson
- * @param <T> The class described by a descriptor instance.
  */
-public interface DataObjectDescriptor<T> {
+public class UnexpectedIntrospectionException extends RuntimeException {
 
-    @NotNull
-    public Class<T> getObjectType();
+    public UnexpectedIntrospectionException() {
+    }
 
-    @NotNull
-    public List<ValueDescriptor> getValueDescriptors();
+    public UnexpectedIntrospectionException(String message) {
+        super(message);
+    }
 
-    @NotNull
-    public Class<? extends Annotation>[] getInheritedAnnotations();
+    public UnexpectedIntrospectionException(String message, Throwable cause) {
+        super(message, cause);
+    }
 
-    public boolean isPropertyDefined(String propertyName);
-
+    public UnexpectedIntrospectionException(Throwable cause) {
+        super(cause);
+    }
 }

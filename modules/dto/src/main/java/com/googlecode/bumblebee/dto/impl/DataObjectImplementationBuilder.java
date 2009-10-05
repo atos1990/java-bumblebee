@@ -128,6 +128,35 @@ public class DataObjectImplementationBuilder {
         return accessor;
     }
 
+    public CtMethod addMutator(@NotNull CtClass implementationClass, @NotNull ValueDescriptor value) {
+        String setterName = "set" + Character.toUpperCase(value.getProperty().charAt(0)) + value.getProperty().substring(1);
+        String methodBody = "{ this." + value.getProperty() + " = $1; }";
+        CtClass ctParameter = null;
+        CtMethod ctSetter = null;
+
+        try {
+            ctParameter = classPool.get(value.getPropertyType().getName());
+        } catch (NotFoundException e) {
+            throw new DataObjectGenerationException("Failed to create setter for property '" + value.getProperty() + "'");
+        }
+
+
+        try {
+            ctSetter = CtNewMethod.make(CtClass.voidType, setterName, new CtClass[] { ctParameter },
+                    new CtClass[0], methodBody, implementationClass);
+        } catch (CannotCompileException e) {
+            throw new DataObjectGenerationException("Failed to create setter for property " + value.getProperty(), e);
+        }
+
+        try {
+            implementationClass.addMethod(ctSetter);
+        } catch (CannotCompileException e) {
+            throw new DataObjectGenerationException("Failed to add setter for property '" + value.getProperty() + "' to data class", e);
+        }
+
+        return ctSetter;
+    }
+
     public CtMethod addInitializer(@NotNull CtClass implementationClass, @NotEmpty String fieldName, @NotNull Statement statement) {
         String methodName = "init_" + fieldName;
         CtClass ctObject = null;
@@ -182,7 +211,6 @@ public class DataObjectImplementationBuilder {
     public CtConstructor addBuilderConstructor(@NotNull CtClass implementationClass) {
         CtConstructor constructor = null;
         CtClass ctPropertyValueArray = null;
-        CtClass ctAssembler = null;
         StringBuilder statementBuffer = new StringBuilder();
 
         try {
@@ -192,13 +220,7 @@ public class DataObjectImplementationBuilder {
         }
 
         try {
-            ctAssembler = classPool.get(Assembler.class.getName());
-        } catch (NotFoundException e) {
-            throw new DataObjectGenerationException("Failed to locate class file for Assembler");
-        }
-
-        try {
-            constructor = CtNewConstructor.make(new CtClass[] { ctPropertyValueArray, ctAssembler }, new CtClass[0], implementationClass);
+            constructor = CtNewConstructor.make(new CtClass[] { ctPropertyValueArray }, new CtClass[0], implementationClass);
         } catch (CannotCompileException e) {
             throw new DataObjectGenerationException("Failed to generate constructor (PropertyValue[], Assembler)");
         }
@@ -280,6 +302,24 @@ public class DataObjectImplementationBuilder {
         }
 
         return constructor;
+    }
+
+    public CtConstructor addDefaultConstructor(CtClass implementationClass) {
+        CtConstructor defaultConstructor = null;
+
+        try {
+            defaultConstructor = CtNewConstructor.make(new CtClass[0], new CtClass[0], "{}", implementationClass);
+        } catch (CannotCompileException e) {
+            throw new DataObjectGenerationException("Failed to create public default constructor", e);
+        }
+
+        try {
+            implementationClass.addConstructor(defaultConstructor);
+        } catch (CannotCompileException e) {
+            throw new DataObjectGenerationException("Failed to add public default constructor to class '" + implementationClass.getName() + "'", e);
+        }
+
+        return defaultConstructor;
     }
 
     public CtMethod addEqualsMethod(CtClass implementationClass, List<ValueDescriptor> values) {

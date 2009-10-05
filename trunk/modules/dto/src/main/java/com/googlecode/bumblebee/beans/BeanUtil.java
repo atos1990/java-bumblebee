@@ -289,4 +289,26 @@ public class BeanUtil {
         }
     }
 
+    public static Class<?> getComponentTypeOfProperty(@NotNull Class<?> type, @NotEmpty String propertyName) {
+        String getterName = "get" + Character.toUpperCase(propertyName.charAt(0)) + propertyName.substring(1);
+        Method method = null;
+        Class returnType = null;
+
+        try {
+            method = type.getDeclaredMethod(getterName);
+        } catch (NoSuchMethodException e) {
+            throw new PropertyAccessException("No property [" + propertyName + "] exists in class [" + type.getName() + "]");
+        }
+
+        returnType = method.getReturnType();
+
+        if (returnType.isArray()) {
+            return returnType.getComponentType();
+        } else if (Collection.class.isAssignableFrom(returnType)) {
+            return getCollectionComponentType(method.getGenericReturnType().toString());
+        }
+
+        return null;
+    }
+
 }

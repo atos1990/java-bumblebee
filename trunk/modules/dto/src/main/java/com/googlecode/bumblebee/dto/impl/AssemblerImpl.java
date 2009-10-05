@@ -26,11 +26,18 @@ import net.sf.jdpa.cg.model.Statement;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.io.File;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.net.URLClassLoader;
+import java.net.URL;
+import java.net.URISyntaxException;
+
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 
 /**
  * Default assembler implementation.
@@ -39,12 +46,12 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  */
 public class AssemblerImpl implements Assembler {
 
+    private static final Logger LOG = LoggerFactory.getLogger(AssemblerImpl.class);
+
     private Map<Class<?>, Class<?>> dataObjectImplementations
             = new HashMap<Class<?>, Class<?>>();
 
     private ReadWriteLock dataObjectImplementationLock = new ReentrantReadWriteLock();
-
-    private ClassPool classPool = ClassPool.getDefault();
 
     @SuppressWarnings("unchecked")
     public <T> T assemble(@NotNull Object source, @NotNull Class<T> dataObjectType) {
@@ -52,7 +59,7 @@ public class AssemblerImpl implements Assembler {
     }
 
     public <T> T assemble(@NotNull Class<T> dataObjectType, PropertyValue ... properties) {
-        return createDataObjectInstance(dataObjectType, new Class[] { PropertyValue[].class }, new Object[] { properties });
+        return createDataObjectInstance(dataObjectType, new Class[] { PropertyValue[].class, Assembler.class }, new Object[] { properties, this });
     }
 
     @SuppressWarnings("unchecked")
@@ -117,7 +124,8 @@ public class AssemblerImpl implements Assembler {
     }
 
     protected Class<?> createDataObjectImplementation(Class<?> descriptorType) {
-        DataObjectImplementationBuilder implementationBuilder = getDataObjectImplementationBuilder();
+        ClassPool classPool = getClassPool();
+        DataObjectImplementationBuilder implementationBuilder = getDataObjectImplementationBuilder(classPool);
         CtClass ctClass = implementationBuilder.newDataObjectImplementation(descriptorType);
         DataObjectDescriptor<?> descriptor = new DataObjectDescriptorFactoryImpl().createDataObjectDescriptor(descriptorType); // TODO Generify
         List<ValueDescriptor> valueDescriptors = descriptor.getValueDescriptors();
@@ -223,8 +231,37 @@ public class AssemblerImpl implements Assembler {
         }
     }
 
-    protected DataObjectImplementationBuilder getDataObjectImplementationBuilder() {
+    protected DataObjectImplementationBuilder getDataObjectImplementationBuilder(ClassPool classPool) {
         return new DataObjectImplementationBuilder(classPool);
+    }
+
+    protected ClassPool getClassPool() {    
+        ClassPool classPool = new ClassPool(ClassPool.getDefault());
+        ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+
+        if (classLoader == null) {
+            classLoader = getClass().getClassLoader();
+        }
+
+        while (classLoader != null) {
+            if (classLoader instanceof URLClassLoader) {
+                URLClassLoader urlClassLoader = (URLClassLoader) classLoader;
+
+                for (URL url : urlClassLoader.getURLs()) {
+                    try {
+                        classPool.appendClassPath(new File(url.toURI()).getAbsolutePath());
+                    } catch (NotFoundException e) {
+                        LOG.warn("Failed to append URL '" + url + "' to classpath");
+                    } catch (URISyntaxException e) {
+                        LOG.warn("Failed to translate URL [" + url + "] to file", e);
+                    }
+                }
+            }
+
+            classLoader = classLoader.getParent();
+        }
+
+        return classPool;
     }
 
 }

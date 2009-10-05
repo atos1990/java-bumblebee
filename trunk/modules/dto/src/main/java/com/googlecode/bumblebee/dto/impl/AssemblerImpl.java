@@ -55,7 +55,7 @@ public class AssemblerImpl implements Assembler {
     }
 
     public <T> T assemble(@NotNull Class<T> dataObjectType, PropertyValue ... properties) {
-        return createDataObjectInstance(dataObjectType, new Class[] { PropertyValue[].class, Assembler.class }, new Object[] { properties, this });
+        return createDataObjectInstance(dataObjectType, new Class[] { PropertyValue[].class }, new Object[] { properties });
     }
 
     @SuppressWarnings("unchecked")
@@ -145,6 +145,7 @@ public class AssemblerImpl implements Assembler {
 
             implementationBuilder.addField(ctClass, propertyType, value.getProperty());
             implementationBuilder.addAccessor(ctClass, value.getAccessor().getName(), value.getProperty());
+            implementationBuilder.addMutator(ctClass, value);
 
             if (propertyType.isPrimitive()) {
                 // Figure out the corresponding wrapper type for the primitive
@@ -190,6 +191,7 @@ public class AssemblerImpl implements Assembler {
             initializers.add(implementationBuilder.addInitializer(ctClass, value.getProperty(), statement));
         }
 
+        implementationBuilder.addDefaultConstructor(ctClass);
         implementationBuilder.addBuilderConstructor(ctClass);
         implementationBuilder.addConversionConstructor(ctClass, initializers);
 

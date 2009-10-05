@@ -172,7 +172,27 @@ public class AssemblerImplTestBase {
             assertArrayEquals(new String[]{"foo", "bar"}, dto.getStrings().toArray());
         }
 
+        @Test
+        public void publicDefaultConstructorShouldBeGenerated() throws Exception {
+            DummyDataObject dataObject = assembler.assemble(DummyDataObject.class);
+            assertNotNull(dataObject.getClass().getConstructor());
+        }
+
+        @Test
+        public void settersShouldBeGenerated() throws Exception {
+            DummyDataObjectWithSingleProperty dataObject = assembler.assemble(DummyDataObjectWithSingleProperty.class);
+            assertNotNull(dataObject.getClass().getDeclaredMethod("setProperty", String.class));
+        }
+
         // Local support classes
+
+        @DataObject
+        public interface DummyDataObjectWithSingleProperty {
+
+            @Value
+            public String getProperty();
+
+        }
 
         @DataObject
         public interface ObjectWithStringsData {

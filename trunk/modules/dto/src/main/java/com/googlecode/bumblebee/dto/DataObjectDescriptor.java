@@ -37,6 +37,8 @@ public interface DataObjectDescriptor<T> {
     @NotNull
     public Class<? extends Annotation>[] getInheritedAnnotations();
 
+    public boolean isAnnotationTypeInherited(Class<? extends Annotation> annotationType);
+
     public boolean isPropertyDefined(String propertyName);
 
 }

@@ -50,6 +50,16 @@ public class DataObjectDescriptorImpl<T> implements DataObjectDescriptor<T>, Ser
         return inheritedAnnotations.toArray(new Class[inheritedAnnotations.size()]);
     }
 
+    public boolean isAnnotationTypeInherited(@NotNull Class<? extends Annotation> annotationType) {
+        for (Class<? extends Annotation> inheritedAnnotationType : inheritedAnnotations) {
+            if (inheritedAnnotationType.isAssignableFrom(annotationType)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public void addValueDescriptor(@NotNull ValueDescriptorImpl valueDescriptor) {
         valueDescriptors.put(valueDescriptor.getProperty(), valueDescriptor);
     }

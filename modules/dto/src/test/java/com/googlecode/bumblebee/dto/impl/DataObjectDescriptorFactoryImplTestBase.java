@@ -20,6 +20,8 @@ import static org.junit.Assert.*;
 import org.junit.Before;
 import org.junit.Test;
 
+import javax.xml.bind.annotation.XmlType;
+import javax.xml.bind.annotation.XmlElement;
 import java.lang.reflect.Method;
 import java.util.Collections;
 import java.util.Comparator;
@@ -125,6 +127,13 @@ public class DataObjectDescriptorFactoryImplTestBase {
             }, descriptor.getValueDescriptors().toArray());
         }
 
+        @Test
+        public void inheritedAnnotationsShouldBeIncluded() throws Exception {
+            DataObjectDescriptor descriptor = descriptorFactory.createDataObjectDescriptor(DataObjectWithInheritedAnnotations.class);
+
+            assertArrayEquals(new Class[] { XmlType.class, XmlElement.class }, descriptor.getInheritedAnnotations());
+        }
+
         protected List<ValueDescriptor> sortByProperty(List<ValueDescriptor> values) {
             Collections.sort(values, new Comparator<ValueDescriptor>() {
                 public int compare(ValueDescriptor v1, ValueDescriptor v2) {
@@ -139,6 +148,11 @@ public class DataObjectDescriptorFactoryImplTestBase {
     //
     // Support classes
     //
+
+    @DataObject(inheritedAnnotations = { XmlType.class, XmlElement.class})
+    public static interface DataObjectWithInheritedAnnotations {
+
+    }
 
     @DataObject
     public static interface DataObjectWithOverriddenValue extends DataObjectWithSingleIntegerValue {

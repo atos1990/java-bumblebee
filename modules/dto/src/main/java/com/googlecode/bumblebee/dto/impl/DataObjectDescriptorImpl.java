@@ -19,10 +19,8 @@ import com.googlecode.bumblebee.dto.ValueDescriptor;
 import net.sf.jdpa.NotNull;
 
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.lang.annotation.Annotation;
 
 /**
  * @author Andreas Nilsson
@@ -32,6 +30,8 @@ public class DataObjectDescriptorImpl<T> implements DataObjectDescriptor<T>, Ser
     public Class<T> objectType = null;
 
     private Map<String, ValueDescriptorImpl> valueDescriptors = new HashMap<String, ValueDescriptorImpl>();
+
+    private Set<Class<? extends Annotation>> inheritedAnnotations = new LinkedHashSet<Class<? extends Annotation>>();
 
     public DataObjectDescriptorImpl(@NotNull Class<T> objectType) {
         this.objectType = objectType;
@@ -45,8 +45,17 @@ public class DataObjectDescriptorImpl<T> implements DataObjectDescriptor<T>, Ser
         return new ArrayList<ValueDescriptor>(valueDescriptors.values());
     }
 
+    @SuppressWarnings("unchecked")
+    public Class<? extends Annotation>[] getInheritedAnnotations() {
+        return inheritedAnnotations.toArray(new Class[inheritedAnnotations.size()]);
+    }
+
     public void addValueDescriptor(@NotNull ValueDescriptorImpl valueDescriptor) {
         valueDescriptors.put(valueDescriptor.getProperty(), valueDescriptor);
+    }
+
+    public void addInheritedAnnotation(@NotNull Class<? extends Annotation> annotationType) {
+        inheritedAnnotations.add(annotationType);
     }
 
     public boolean isPropertyDefined(@NotNull String propertyName) {
@@ -54,27 +63,33 @@ public class DataObjectDescriptorImpl<T> implements DataObjectDescriptor<T>, Ser
     }
 
     @Override
-    public int hashCode() {
-        return objectType.hashCode() ^ valueDescriptors.hashCode();
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        DataObjectDescriptorImpl that = (DataObjectDescriptorImpl) o;
+
+        if (!inheritedAnnotations.equals(that.inheritedAnnotations)) return false;
+        if (!objectType.equals(that.objectType)) return false;
+        if (!valueDescriptors.equals(that.valueDescriptors)) return false;
+
+        return true;
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (o == null || !o.getClass().equals(getClass())) {
-            return false;
-        } else if (o == this) {
-            return true;
-        } else {
-            DataObjectDescriptorImpl dataObjectDescriptor = (DataObjectDescriptorImpl) o;
-
-            return objectType.equals(dataObjectDescriptor.objectType) &&
-                    valueDescriptors.equals(dataObjectDescriptor.valueDescriptors);
-        }
+    public int hashCode() {
+        int result = objectType.hashCode();
+        result = 31 * result + valueDescriptors.hashCode();
+        result = 31 * result + inheritedAnnotations.hashCode();
+        return result;
     }
 
     @Override
     public String toString() {
-        return getClass().getName() + " <objectType = " + objectType.getName()
-                + ", valueDescriptors = " + valueDescriptors.toString() + ">";
+        return "DataObjectDescriptorImpl{" +
+                "objectType=" + objectType +
+                ", valueDescriptors=" + valueDescriptors +
+                ", inheritedAnnotations=" + inheritedAnnotations +
+                '}';
     }
 }

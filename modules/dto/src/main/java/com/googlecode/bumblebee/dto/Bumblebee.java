@@ -42,6 +42,11 @@ public class Bumblebee {
         return new PropertyValue(propertyName, propertyValue);
     }
 
+    @SuppressWarnings("unchecked")
+    public static<T> Class<? extends T> implementationOf(Class<T> dataObjectDefinition) {
+        return (Class<? extends T>) DEFAULT_ASSEMBLER.getDataObjectImplementation(dataObjectDefinition);
+    }
+
     public static interface AssembleBuilder<T> {
 
         public <T> T from(Object source);

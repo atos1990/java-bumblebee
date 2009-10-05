@@ -14,11 +14,11 @@
 
 package com.googlecode.bumblebee.dto.impl;
 
-import com.googlecode.bumblebee.dto.Assembler;
-import com.googlecode.bumblebee.dto.DataObjectGenerationException;
-import com.googlecode.bumblebee.dto.PropertyValue;
-import com.googlecode.bumblebee.dto.ValueDescriptor;
+import com.googlecode.bumblebee.dto.*;
 import javassist.*;
+import javassist.bytecode.AttributeInfo;
+import javassist.bytecode.AnnotationsAttribute;
+import javassist.bytecode.ClassFile;
 import net.sf.jdpa.NotEmpty;
 import net.sf.jdpa.NotNull;
 import net.sf.jdpa.Pointcut;
@@ -26,10 +26,9 @@ import static net.sf.jdpa.cg.Code.*;
 import net.sf.jdpa.cg.model.Statement;
 import net.sf.jdpa.javassist.JavassistEmitter;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Arrays;
+import java.util.*;
+import java.lang.annotation.Annotation;
+import java.lang.reflect.Method;
 
 /**
  * @author Andreas Nilsson
@@ -142,7 +141,7 @@ public class DataObjectImplementationBuilder {
 
 
         try {
-            ctSetter = CtNewMethod.make(CtClass.voidType, setterName, new CtClass[] { ctParameter },
+            ctSetter = CtNewMethod.make(CtClass.voidType, setterName, new CtClass[]{ctParameter},
                     new CtClass[0], methodBody, implementationClass);
         } catch (CannotCompileException e) {
             throw new DataObjectGenerationException("Failed to create setter for property " + value.getProperty(), e);
@@ -220,18 +219,18 @@ public class DataObjectImplementationBuilder {
         }
 
         try {
-            constructor = CtNewConstructor.make(new CtClass[] { ctPropertyValueArray }, new CtClass[0], implementationClass);
+            constructor = CtNewConstructor.make(new CtClass[]{ctPropertyValueArray}, new CtClass[0], implementationClass);
         } catch (CannotCompileException e) {
             throw new DataObjectGenerationException("Failed to generate constructor (PropertyValue[], Assembler)");
         }
 
         statementBuffer.append("for (int i = 0; i < $1.length; i++) {");
-            statementBuffer.append("com.googlecode.bumblebee.dto.PropertyValue propertyValue = $1[i];");
-            statementBuffer.append("try {");
-                statementBuffer.append("getClass().getDeclaredField(propertyValue.getPropertyName()).set(this, $1[i].getPropertyValue());");
-            statementBuffer.append("} catch (Exception e) {");
-                statementBuffer.append("throw new com.googlecode.bumblebee.dto.DataObjectGenerationException(\"Failed to set property \" + propertyValue.getPropertyName(), e);");
-            statementBuffer.append("}");
+        statementBuffer.append("com.googlecode.bumblebee.dto.PropertyValue propertyValue = $1[i];");
+        statementBuffer.append("try {");
+        statementBuffer.append("getClass().getDeclaredField(propertyValue.getPropertyName()).set(this, $1[i].getPropertyValue());");
+        statementBuffer.append("} catch (Exception e) {");
+        statementBuffer.append("throw new com.googlecode.bumblebee.dto.DataObjectGenerationException(\"Failed to set property \" + propertyValue.getPropertyName(), e);");
+        statementBuffer.append("}");
         statementBuffer.append("}");
 
         try {
@@ -352,14 +351,14 @@ public class DataObjectImplementationBuilder {
                         .append(value.getProperty()).append(" != null && !this.")
                         .append(value.getProperty()).append(".equals(that.")
                         .append(value.getProperty()).append(")) return false;");
-            }                                  
+            }
         }
 
         body.append("return true;");
         body.append("}");
 
         try {
-            ctEquals = CtNewMethod.make(CtClass.booleanType, "equals", new CtClass[] { ctObject }, new CtClass[0], body.toString(), implementationClass);
+            ctEquals = CtNewMethod.make(CtClass.booleanType, "equals", new CtClass[]{ctObject}, new CtClass[0], body.toString(), implementationClass);
         } catch (CannotCompileException e) {
             throw new DataObjectGenerationException("Failed to create equals method: " + body.toString(), e);
         }
@@ -371,6 +370,65 @@ public class DataObjectImplementationBuilder {
         }
 
         return ctEquals;
+    }
+
+    /**
+     * Transfers annotations from an interface to the implementation class. Some APIs, such as JAXB, requires
+     * annotations to be available on the implementation class. This method ensures that the annotations placed
+     * on the interface is inherited by the implementing type in order to make the annotations visible to third
+     * party APIs.
+     * @param descriptor The descriptor of the data object.
+     * @param implementationClass The implementation class currently being constructed.
+     */
+    public void transferTypeAnnotations(@NotNull DataObjectDescriptor<?> descriptor, @NotNull CtClass implementationClass) {
+        Class<?> dataObjectInterface = descriptor.getObjectType();
+        ClassFile classFile = implementationClass.getClassFile();
+        AnnotationsAttribute annotationsAttribute = new AnnotationsAttribute(classFile.getConstPool(), AnnotationsAttribute.visibleTag);
+        List<Class<? extends Annotation>> inheritedAnnotations = Arrays.asList(descriptor.getInheritedAnnotations());
+
+        for (Annotation annotation : dataObjectInterface.getAnnotations()) {
+            javassist.bytecode.annotation.Annotation javassistAnnotation = null;
+
+            if (!annotation.annotationType().getName().startsWith("com.googlecode.bumblebee.dto")
+                    && inheritedAnnotations.contains(annotation.annotationType())) {
+                try {
+                    javassistAnnotation = AnnotationUtil.createAnnotation(classPool,
+                            implementationClass.getClassFile().getConstPool(), annotation);
+                } catch (NotFoundException e) {
+                    throw new DataObjectGenerationException("Failed to copy annotation " + annotation.annotationType().getName());
+                }
+
+                annotationsAttribute.addAnnotation(javassistAnnotation);
+            }
+        }
+
+        implementationClass.setAttribute(AnnotationsAttribute.visibleTag, annotationsAttribute.get());
+    }
+
+    public void transferMethodAnnotations(@NotNull DataObjectDescriptor<?> descriptor,
+                                          @NotNull CtClass implementationClass,
+                                          @NotNull Method method,
+                                          @NotNull CtMethod ctMethod) {
+        AnnotationsAttribute annotationsAttribute = new AnnotationsAttribute(ctMethod.getMethodInfo().getConstPool(), AnnotationsAttribute.visibleTag);
+        List<Class<? extends Annotation>> inheritedAnnotations = Arrays.asList(descriptor.getInheritedAnnotations());
+
+        for (Annotation annotation : method.getAnnotations()) {
+            javassist.bytecode.annotation.Annotation javassistAnnotation = null;
+
+            if (!annotation.annotationType().getName().startsWith("com.googlecode.bumblebee.dto")
+                    && inheritedAnnotations.contains(annotation.annotationType())) {
+                try {
+                    javassistAnnotation = AnnotationUtil.createAnnotation(classPool,
+                            implementationClass.getClassFile().getConstPool(), annotation);
+                } catch (NotFoundException e) {
+                    throw new DataObjectGenerationException("Failed to copy annotation " + annotation.annotationType().getName());
+                }
+
+                annotationsAttribute.addAnnotation(javassistAnnotation);
+            }
+        }
+
+        ctMethod.setAttribute(AnnotationsAttribute.visibleTag, annotationsAttribute.get());
     }
 
 }

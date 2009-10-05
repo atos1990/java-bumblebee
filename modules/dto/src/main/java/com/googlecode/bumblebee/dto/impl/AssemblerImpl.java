@@ -18,10 +18,7 @@ import com.googlecode.bumblebee.beans.BeanUtil;
 import com.googlecode.bumblebee.dto.*;
 import com.googlecode.bumblebee.dto.el.parser.DTOELParser;
 import com.googlecode.bumblebee.dto.el.parser.ParseException;
-import javassist.CannotCompileException;
-import javassist.ClassPool;
-import javassist.CtClass;
-import javassist.CtMethod;
+import javassist.*;
 import net.sf.jdpa.NotNull;
 import static net.sf.jdpa.cg.Code.*;
 import net.sf.jdpa.cg.model.Expression;
@@ -87,23 +84,24 @@ public class AssemblerImpl implements Assembler {
         }
     }
 
-    protected Class<?> getDataObjectImplementation(Class<?> descriptorType) {
-        Class<?> dataObjectImplementation = null;
+    @SuppressWarnings("unchecked")
+    public<T> Class<? extends T> getDataObjectImplementation(Class<T> descriptorType) {
+        Class<? extends T> dataObjectImplementation = null;
 
         dataObjectImplementationLock.readLock().lock();
 
         try {
-            dataObjectImplementation = dataObjectImplementations.get(descriptorType);
+            dataObjectImplementation = (Class<? extends T>) dataObjectImplementations.get(descriptorType);
 
             if (dataObjectImplementation == null) {
                 dataObjectImplementationLock.readLock().unlock();
                 dataObjectImplementationLock.writeLock().lock();
 
                 try {
-                    dataObjectImplementation = dataObjectImplementations.get(descriptorType);
+                    dataObjectImplementation = (Class<? extends T>) dataObjectImplementations.get(descriptorType);
 
                     if (dataObjectImplementation == null) {
-                        dataObjectImplementation = createDataObjectImplementation(descriptorType);
+                        dataObjectImplementation = (Class<? extends T>) createDataObjectImplementation(descriptorType);
                         dataObjectImplementations.put(descriptorType, dataObjectImplementation);
                     }
                 } finally {
@@ -126,6 +124,7 @@ public class AssemblerImpl implements Assembler {
         List<CtMethod> initializers = new ArrayList<CtMethod>(valueDescriptors.size());
 
         implementationBuilder.addInterface(ctClass, descriptorType);
+        implementationBuilder.transferTypeAnnotations(descriptor, ctClass);
 
         for (ValueDescriptor value : valueDescriptors) {
             Class<?> propertyType = value.getPropertyType();
@@ -133,6 +132,9 @@ public class AssemblerImpl implements Assembler {
             Expression expression = null;
             Statement statement = null;
             InputStream in = null;
+            CtField ctField = null;
+            CtMethod ctAccessor = null;
+            CtMethod ctMutator = null;
 
             try {
                 in = new ByteArrayInputStream(value.getExpression().getBytes());
@@ -143,9 +145,17 @@ public class AssemblerImpl implements Assembler {
                         " while generating implementation class for " + descriptorType.getName(), e);
             }
 
-            implementationBuilder.addField(ctClass, propertyType, value.getProperty());
-            implementationBuilder.addAccessor(ctClass, value.getAccessor().getName(), value.getProperty());
-            implementationBuilder.addMutator(ctClass, value);
+            // Create a new field to hold the value
+            ctField = implementationBuilder.addField(ctClass, propertyType, value.getProperty());
+
+            // Create an accessor for the field
+            ctAccessor = implementationBuilder.addAccessor(ctClass, value.getAccessor().getName(), value.getProperty());
+
+            // Create a mutator if the data object is not marked as immutable
+            ctMutator = implementationBuilder.addMutator(ctClass, value);
+
+            // Transfer annotations from the interface to the implementation class
+            implementationBuilder.transferMethodAnnotations(descriptor, ctClass, value.getAccessor(), ctAccessor);
 
             if (propertyType.isPrimitive()) {
                 // Figure out the corresponding wrapper type for the primitive

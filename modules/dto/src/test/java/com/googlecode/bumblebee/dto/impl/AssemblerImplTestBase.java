@@ -30,7 +30,11 @@ import org.junit.Test;
 import static org.mockito.Mockito.*;
 import static org.mockito.Mockito.eq;
 
+import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.XmlType;
+import javax.xml.bind.annotation.XmlAttribute;
 import java.util.*;
+import java.lang.annotation.Annotation;
 
 /**
  * @author Andreas Nilsson
@@ -184,7 +188,28 @@ public class AssemblerImplTestBase {
             assertNotNull(dataObject.getClass().getDeclaredMethod("setProperty", String.class));
         }
 
+        @Test
+        public void annotationsShouldBeInheritedByImplementationClassIfInheritanceIsEnabled() throws Exception {
+            Class<? extends AnnotatedDataObject> dataObjectClass = assembler.getDataObjectImplementation(AnnotatedDataObject.class);
+
+            assertNull(dataObjectClass.getAnnotation(DataObject.class));
+            assertNull(dataObjectClass.getAnnotation(XmlRootElement.class));
+            assertNotNull(dataObjectClass.getAnnotation(XmlType.class));
+            assertNotNull(dataObjectClass.getMethod("getProperty").getAnnotation(XmlAttribute.class));
+        }
+
         // Local support classes
+
+        @DataObject(inheritedAnnotations = { XmlType.class, XmlAttribute.class })
+        @XmlRootElement
+        @XmlType
+        public interface AnnotatedDataObject {
+
+            @Value
+            @XmlAttribute
+            public String getProperty();
+
+        }
 
         @DataObject
         public interface DummyDataObjectWithSingleProperty {

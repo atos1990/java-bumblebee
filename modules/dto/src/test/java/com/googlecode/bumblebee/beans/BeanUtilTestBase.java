@@ -374,6 +374,45 @@ public class BeanUtilTestBase {
         }
     }
 
+    public static class GetComponentTypeOfPropertyTest extends BeanUtilTestBase {
+
+        @Test
+        public void componentTypeOfArrayShouldBeResolved() {
+            assertEquals(String.class, BeanUtil.getComponentTypeOfProperty(DummyClass.class, "strings"));
+        }
+
+        @Test
+        public void componentTypeOfCollectionShouldBeResolved() {
+            assertEquals(Integer.class, BeanUtil.getComponentTypeOfProperty(DummyClass.class, "integers"));
+        }
+
+        @Test
+        public void nonCollectionOrArrayShouldHaveNullComponentType() {
+            assertNull(BeanUtil.getComponentTypeOfProperty(DummyClass.class, "double"));
+        }
+
+        //
+        // Support classes
+        //
+
+        public static class DummyClass {
+
+            public String[] getStrings() {
+                return null;
+            }
+
+            public Collection<Integer> getIntegers() {
+                return null;
+            }
+
+            public Double getDouble() {
+                return 1.0D;
+            }
+
+        }
+
+    }
+
     // Support classes
 
     @DataObject

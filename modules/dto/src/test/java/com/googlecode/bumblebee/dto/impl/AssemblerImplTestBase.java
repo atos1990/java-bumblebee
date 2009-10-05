@@ -50,7 +50,7 @@ public class AssemblerImplTestBase {
         implementationBuilder = spy(new DataObjectImplementationBuilder(ClassPool.getDefault()));
         assembler = new AssemblerImpl() {
             @Override
-            protected DataObjectImplementationBuilder getDataObjectImplementationBuilder() {
+            protected DataObjectImplementationBuilder getDataObjectImplementationBuilder(ClassPool classPool) {
                 return implementationBuilder;
             }
         };

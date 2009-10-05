@@ -208,8 +208,15 @@ public class DataObjectImplementationBuilder {
 
     public CtConstructor addBuilderConstructor(@NotNull CtClass implementationClass) {
         CtConstructor constructor = null;
+        CtClass ctAssembler = null;
         CtClass ctPropertyValueArray = null;
         StringBuilder statementBuffer = new StringBuilder();
+
+        try {
+            ctAssembler = classPool.get(Assembler.class.getName());
+        } catch (NotFoundException e) {
+            throw new DataObjectGenerationException("Failed to locate class file for Assembler");
+        }
 
         try {
             ctPropertyValueArray = classPool.get(PropertyValue[].class.getName());
@@ -218,7 +225,7 @@ public class DataObjectImplementationBuilder {
         }
 
         try {
-            constructor = CtNewConstructor.make(new CtClass[]{ctPropertyValueArray}, new CtClass[0], implementationClass);
+            constructor = CtNewConstructor.make(new CtClass[] { ctPropertyValueArray, ctAssembler }, new CtClass[0], implementationClass);
         } catch (CannotCompileException e) {
             throw new DataObjectGenerationException("Failed to generate constructor (PropertyValue[], Assembler)");
         }
@@ -226,7 +233,10 @@ public class DataObjectImplementationBuilder {
         statementBuffer.append("for (int i = 0; i < $1.length; i++) {");
         statementBuffer.append("com.googlecode.bumblebee.dto.PropertyValue propertyValue = $1[i];");
         statementBuffer.append("try {");
-        statementBuffer.append("getClass().getDeclaredField(propertyValue.getPropertyName()).set(this, $1[i].getPropertyValue());");
+        statementBuffer.append("java.lang.reflect.Field field = getClass().getDeclaredField(propertyValue.getPropertyName());");
+        statementBuffer.append("java.lang.Class componentType = com.googlecode.bumblebee.beans.BeanUtil.getComponentTypeOfProperty(getClass(), propertyValue.getPropertyName());");
+        statementBuffer.append("if (componentType == null) componentType = field.getType();");
+        statementBuffer.append("field.set(this, com.googlecode.bumblebee.beans.BeanUtil.copy($1[i].getPropertyValue(), field.getType(), componentType, $2));");
         statementBuffer.append("} catch (Exception e) {");
         statementBuffer.append("throw new com.googlecode.bumblebee.dto.DataObjectGenerationException(\"Failed to set property \" + propertyValue.getPropertyName(), e);");
         statementBuffer.append("}");

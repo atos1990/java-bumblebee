@@ -16,7 +16,6 @@ package com.googlecode.bumblebee.dto.impl;
 
 import com.googlecode.bumblebee.dto.*;
 import javassist.*;
-import javassist.bytecode.AttributeInfo;
 import javassist.bytecode.AnnotationsAttribute;
 import javassist.bytecode.ClassFile;
 import net.sf.jdpa.NotEmpty;
@@ -384,13 +383,12 @@ public class DataObjectImplementationBuilder {
         Class<?> dataObjectInterface = descriptor.getObjectType();
         ClassFile classFile = implementationClass.getClassFile();
         AnnotationsAttribute annotationsAttribute = new AnnotationsAttribute(classFile.getConstPool(), AnnotationsAttribute.visibleTag);
-        List<Class<? extends Annotation>> inheritedAnnotations = Arrays.asList(descriptor.getInheritedAnnotations());
 
         for (Annotation annotation : dataObjectInterface.getAnnotations()) {
             javassist.bytecode.annotation.Annotation javassistAnnotation = null;
 
             if (!annotation.annotationType().getName().startsWith("com.googlecode.bumblebee.dto")
-                    && inheritedAnnotations.contains(annotation.annotationType())) {
+                    && descriptor.isAnnotationTypeInherited(annotation.annotationType())) {
                 try {
                     javassistAnnotation = AnnotationUtil.createAnnotation(classPool,
                             implementationClass.getClassFile().getConstPool(), annotation);
@@ -410,13 +408,12 @@ public class DataObjectImplementationBuilder {
                                           @NotNull Method method,
                                           @NotNull CtMethod ctMethod) {
         AnnotationsAttribute annotationsAttribute = new AnnotationsAttribute(ctMethod.getMethodInfo().getConstPool(), AnnotationsAttribute.visibleTag);
-        List<Class<? extends Annotation>> inheritedAnnotations = Arrays.asList(descriptor.getInheritedAnnotations());
 
         for (Annotation annotation : method.getAnnotations()) {
             javassist.bytecode.annotation.Annotation javassistAnnotation = null;
 
             if (!annotation.annotationType().getName().startsWith("com.googlecode.bumblebee.dto")
-                    && inheritedAnnotations.contains(annotation.annotationType())) {
+                    && descriptor.isAnnotationTypeInherited(annotation.annotationType())) {
                 try {
                     javassistAnnotation = AnnotationUtil.createAnnotation(classPool,
                             implementationClass.getClassFile().getConstPool(), annotation);

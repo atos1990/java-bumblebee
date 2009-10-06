@@ -36,8 +36,6 @@ public class DataObjectImplementationBuilder {
 
     private ClassPool classPool = null;
 
-    private static long sequence = 1;
-
     public DataObjectImplementationBuilder(@NotNull ClassPool classPool) {
         this.classPool = classPool;
     }
@@ -52,13 +50,18 @@ public class DataObjectImplementationBuilder {
      * @return An intermediate implementation class for the provided data object.
      */
     public CtClass newDataObjectImplementation(@NotNull Class<?> objectType) {
-        long objectId = -1;
+        return classPool.makeClass(getImplementationClassName(objectType));
+    }
 
-        synchronized (this) {
-            objectId = sequence++;
+    public static String getImplementationClassName(@NotNull Class<?> objectType) {
+        String className = objectType.getName();
+        int n = className.lastIndexOf('.');
+
+        if (n == -1) {
+            return "Bumblebee" + className + "Impl";
+        } else {
+            return className.substring(0, n) + ".Bumblebee" + className.substring(n + 1) + "Impl";
         }
-
-        return classPool.makeClass(String.format(objectType.getName() + "$impl$%06d", objectId));
     }
 
     public void addInterface(@NotNull CtClass implementationClass, @NotNull Class<?> interfaceType) {

@@ -72,13 +72,13 @@ public class AssemblerImplTestBase {
         @Test
         @SuppressWarnings("unchecked")
         public void testCallSequenceOnDataObjectWithSingleProperty() {
-            assembler.createDataObjectImplementation(DataObjectWithSingleStringProperty.class);
+            assembler.createDataObjectImplementation(DataObjectWithSingleStringProperty2.class);
 
             // Check that a new class is defined
-            verify(implementationBuilder).newDataObjectImplementation(eq(DataObjectWithSingleStringProperty.class));
+            verify(implementationBuilder).newDataObjectImplementation(eq(DataObjectWithSingleStringProperty2.class));
 
             // Check that all data object interfaces are implemented
-            verify(implementationBuilder).addInterface((CtClass) anyObject(), eq(DataObjectWithSingleStringProperty.class));
+            verify(implementationBuilder).addInterface((CtClass) anyObject(), eq(DataObjectWithSingleStringProperty2.class));
 
             // Check that a field with a corresponding accessor is added for the property
             verify(implementationBuilder).addField((CtClass) anyObject(), eq(String.class), eq("property"));
@@ -336,6 +336,14 @@ public class AssemblerImplTestBase {
 
     @DataObject
     public static interface DataObjectWithSingleStringProperty {
+
+        @Value
+        public String getProperty();
+
+    }
+
+    @DataObject
+    public static interface DataObjectWithSingleStringProperty2 {
 
         @Value
         public String getProperty();

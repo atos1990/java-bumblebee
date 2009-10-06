@@ -108,7 +108,12 @@ public class AssemblerImpl implements Assembler {
                     dataObjectImplementation = (Class<? extends T>) dataObjectImplementations.get(descriptorType);
 
                     if (dataObjectImplementation == null) {
-                        dataObjectImplementation = (Class<? extends T>) createDataObjectImplementation(descriptorType);
+                        try {
+                            dataObjectImplementation = (Class<? extends T>) Class.forName(DataObjectImplementationBuilder.getImplementationClassName(descriptorType));
+                        } catch (ClassNotFoundException e) {
+                            dataObjectImplementation = (Class<? extends T>) createDataObjectImplementation(descriptorType);
+                        }
+
                         dataObjectImplementations.put(descriptorType, dataObjectImplementation);
                     }
                 } finally {

@@ -54,9 +54,8 @@ public class DataObjectImplementationBuilderTestBase {
         @Test
         public void concreteCtClassShouldBeCreated() {
             CtClass ctClass = dataObjectImplementationBuilder.newDataObjectImplementation(EmptyDataObject2.class);
-            Pattern classNamePattern = Pattern.compile("com\\.googlecode\\.bumblebee\\.dto\\.impl\\.EmptyDataObject2\\$impl\\$\\d{6}");
-
-            assertTrue(ctClass.getName(), classNamePattern.matcher(ctClass.getName()).matches());
+            
+            assertEquals("com.googlecode.bumblebee.dto.impl.BumblebeeEmptyDataObject2Impl", ctClass.getName());
         }
 
         @Test(expected = IllegalArgumentException.class)

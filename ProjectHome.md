@@ -1,0 +1,1 @@
+bumblebee is used to simplify the process of converting entities to DTOs, as is often required in Java EE applications. The framework provides a zero-configuration assembler that allows quick and concise assembly of DTOs using annotations.
